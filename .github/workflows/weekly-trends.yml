@@ -1,0 +1,31 @@
+name: weekly-trends
+
+# Monday 04:30 UTC ~= 06:30 CET / 07:30 EET.
+# Runs at the week transition so week_folder() (ISO week from date.today())
+# labels the fresh week. GitHub cron is UTC-only.
+on:
+  schedule:
+    - cron: "30 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build collector image
+        run: docker build -t trends-collector .
+
+      - name: Run trends collector
+        run: |
+          docker run --rm \
+            -e R2_ENDPOINT_URL="${{ secrets.R2_ENDPOINT_URL }}" \
+            -e R2_ACCESS_KEY_ID="${{ secrets.R2_ACCESS_KEY_ID }}" \
+            -e R2_SECRET_ACCESS_KEY="${{ secrets.R2_SECRET_ACCESS_KEY }}" \
+            -e R2_BUCKET="${{ secrets.R2_BUCKET }}" \
+            -e R2_PUBLIC_URL="${{ secrets.R2_PUBLIC_URL }}" \
+            -e TURSO_DATABASE_URL="${{ secrets.TURSO_DATABASE_URL }}" \
+            -e TURSO_AUTH_TOKEN="${{ secrets.TURSO_AUTH_TOKEN }}" \
+            trends-collector
